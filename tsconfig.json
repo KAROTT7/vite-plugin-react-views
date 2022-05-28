@@ -1,16 +1,18 @@
 {
 	"compilerOptions": {
+    "outDir": "dist",
 		"allowJs": true,
 		"checkJs": true,
 		"noFallthroughCasesInSwitch": true,
 		"allowUnreachableCode": false,
 		"allowUnusedLabels": false,
-		"noImplicitReturns": true,
+		"noImplicitReturns": false,
 		"noImplicitOverride": false,
 		"noUncheckedIndexedAccess": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noImplicitAny": false,
+    "declaration": true,
 		// strict family
 		"strictBindCallApply": true,
 		"strictFunctionTypes": true,
@@ -20,9 +22,6 @@
 		"baseUrl": ".",
 		"resolveJsonModule": true,
 		"target": "ESNext",
-		"paths": {
-			"@/*": ["src/*"]
-		},
 
 		"useDefineForClassFields": true,
 		"lib": ["DOM", "DOM.Iterable", "ESNext"],
@@ -31,11 +30,10 @@
 		"allowSyntheticDefaultImports": true,
 		"strict": false,
 		"forceConsistentCasingInFileNames": true,
-		"module": "ESNext",
-		"noEmit": true,
+		"module": "Commonjs",
 
 		"moduleResolution": "Node",
-		"isolatedModules": true,
-		"jsx": "react-jsx"
+		"isolatedModules": true
 	},
+  "exclude": ["./example/*", "dist"]
 }
