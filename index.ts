@@ -1,15 +1,14 @@
-import { join } from 'path'
 import * as fg from 'fast-glob'
 import type { PluginOption } from 'vite'
 
 interface Options {
   dir?: string;
   exclude?(path: string): boolean;
-  loading?: string;
 }
 
 interface CreateCodeOptions extends Omit<Options, 'exclude'> {
   layout?: string;
+  loading?: string;
   noMatch?: string;
   pages?: string;
 }
@@ -23,8 +22,8 @@ function createCode(opts: CreateCodeOptions = {}) {
     pages
   } = opts
 
-  return `import { lazy, Suspense, useMemo } from 'react'
-import { BrowserRouter, useRoutes } from 'react-router-dom'
+  return `import { lazy, Suspense } from 'react'
+import { useRoutes } from 'react-router-dom'
 ${loading ? `import Loading from '${loading}'` : ''}
 ${layout ? `import Layout from '${layout}'` : ''}
 ${noMatch ? `import NoMatch from '${noMatch}'` : ''}
@@ -41,18 +40,18 @@ for (const [key, value] of Object.entries(pages)) {
 	}
 }
 
-export default function Routes() {
+export default function Routes(props) {
   function lazilize(importFn) {
     const Component = lazy(importFn)
     return (
-      <Suspense fallback={${loading ? '<Loading />' : 'null'}}>
-        <Component />
+      <Suspense fallback={${loading ? '<Loading {...props} />' : 'null'}}>
+        <Component {...props} />
       </Suspense>
     )
   }
 
   function createRoutes(routes) {
-    const o = [], map = {};
+    let o = [], map = {};
     routes.forEach((route) => {
       const { paths } = route
       let prevRoutes = o
@@ -89,15 +88,13 @@ export default function Routes() {
     return o
   }
 
-  const o = createRoutes(routes)
-
 	const configs = [{
     path: import.meta.env.BASE_URL,
-    element: ${layout ? '<Layout />' : 'undefined'},
-    children: o
+    element: ${layout ? '<Layout {...props} />' : 'undefined'},
+    children: createRoutes(routes)
   }]
 
-  ${noMatch ? "configs.push({ path: '*', element: <NoMatch /> })" : ''}
+  ${noMatch ? "configs.push({ path: '*', element: <NoMatch {...props} /> })" : ''}
 
 	return useRoutes(configs)
 }`
@@ -106,11 +103,10 @@ export default function Routes() {
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
-    loading,
     exclude
   } = opts
 
-  let suffix = '.jsx', layout: string, noMatch: string
+  let suffix = '.jsx', layout: string, noMatch: string, loading: string
 
   const moduleName = 'route-views'
   const prefix = '\0'
@@ -126,12 +122,18 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       return
     }
 
-    if (key === '404') {
-      noMatch = '/' + fileName
-    } else if (key === 'layout') {
-      layout = '/' + fileName
-    } else {
-      pages += `'${key}': () => import('/${fileName}'),\n`
+    switch (key) {
+      case '404':
+        noMatch = '/' + fileName
+        break
+      case 'layout':
+        layout = '/' + fileName
+        break
+      case 'loading':
+        loading = '/' + fileName
+        break
+      default:
+        pages += `'${key}': () => import('/${fileName}'),\n`
     }
   })
 
@@ -148,7 +150,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       if (id === virtualName) {
         return createCode({
           dir: /^\/{1}/.test(dir) ? dir : `/${dir}`,
-          loading: loading ? join(process.cwd(), loading) : '',
+          loading,
           layout,
           noMatch,
           pages
