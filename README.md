@@ -1,10 +1,10 @@
 # vite-plugin-react-views
-基于 `react`，`react-router-dom@^6` 自动创建路由。
+基于文件结构使用 `react-router-dom@^6` 自动创建路由。
 
 ### 用法
 - 安装
   ```js
-  npm install vite-plugin-react-views -D
+  npm install vite-plugin-react-views --save-dev
   ```
 - 使用
   ```js
@@ -73,7 +73,7 @@ src/pages/404 文件将会配置成 404 路由，且是同步加载。
 /// <reference types="vite/client" />
 
 declare module 'route-views' {
-	function Routes(props: unknown): JSX.Element;
+	function Routes(): JSX.Element;
 
 	export default Routes;
 }
