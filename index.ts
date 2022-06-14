@@ -22,7 +22,7 @@ function createCode(opts: CreateCodeOptions = {}) {
     pages
   } = opts
 
-  return `import { lazy, Suspense } from 'react'
+  return `import { lazy, Suspense, useMemo } from 'react'
 import { useRoutes } from 'react-router-dom'
 ${loading ? `import Loading from '${loading}'` : ''}
 ${layout ? `import Layout from '${layout}'` : ''}
@@ -40,17 +40,17 @@ for (const [key, value] of Object.entries(pages)) {
 	}
 }
 
-export default function Routes(props) {
-  function lazilize(importFn) {
-    const Component = lazy(importFn)
-    return (
-      <Suspense fallback={${loading ? '<Loading {...props} />' : 'null'}}>
-        <Component {...props} />
-      </Suspense>
-    )
-  }
+export default function Routes() {
+  const children = useMemo(() => {
+    function lazilize(importFn) {
+      const Component = lazy(importFn)
+      return (
+        <Suspense fallback={${loading ? '<Loading />' : 'null'}}>
+          <Component />
+        </Suspense>
+      )
+    }
 
-  function createRoutes(routes) {
     let o = [], map = {};
     routes.forEach((route) => {
       const { paths } = route
@@ -86,15 +86,15 @@ export default function Routes(props) {
     })
 
     return o
-  }
+  }, [])
 
 	const configs = [{
     path: import.meta.env.BASE_URL,
-    element: ${layout ? '<Layout {...props} />' : 'undefined'},
-    children: createRoutes(routes)
+    element: ${layout ? '<Layout />' : 'undefined'},
+    children
   }]
 
-  ${noMatch ? "configs.push({ path: '*', element: <NoMatch {...props} /> })" : ''}
+  ${noMatch ? "configs.push({ path: '*', element: <NoMatch /> })" : ''}
 
 	return useRoutes(configs)
 }`
