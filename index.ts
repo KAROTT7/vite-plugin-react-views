@@ -32,7 +32,7 @@ let pages = ${pages}, layouts = {}, routes = [];
 for (const [key, value] of Object.entries(pages)) {
 	const path = key.replace('${dir}/', '').replace(${new RegExp('\\.(jsx?|tsx?)')}, '')
 	const route = { paths: path.split('/'), value }
-  
+
 	if (path.includes('layout')) {
 		layouts[path.replace(${new RegExp('\/?layout')}, '')] = route
 	} else {
@@ -104,44 +104,67 @@ export default function Routes() {
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
-    exclude
+    exclude = () => false
   } = opts
 
-  let suffix = '.jsx', layout: string, noMatch: string, loading: string
-
+  let suffix = '.jsx'
   const moduleName = 'route-views'
   const prefix = '\0'
   const virtualName = prefix + moduleName + suffix
 
-  const files = fg.sync(`${dir}/**/*.{js,jsx,ts,tsx}`)
+  function createPages() {
+    const files = fg.sync(`${dir}/**/*.{js,jsx,ts,tsx}`)
+    let pages = ``, layout = '', noMatch = '', loading = ''
+    files.forEach(fileName => {
+      const key = fileName.replace(dir + '/', '').replace(/(\..+)$/, (_, $1) => _.replace($1, ''))
 
-  let pages = ``
-  files.forEach(fileName => {
-    const key = fileName.replace(dir + '/', '').replace(/(\..+)$/, (_, $1) => _.replace($1, ''))
+      if (exclude(fileName)) {
+        return
+      }
 
-    if (exclude && exclude(fileName)) {
-      return
+      switch (key) {
+        case '404':
+          noMatch = '/' + fileName
+          break
+        case 'layout':
+          layout = '/' + fileName
+          break
+        case 'loading':
+          loading = '/' + fileName
+          break
+        default:
+          pages += `'${key}': () => import('/${fileName}'),\n`
+      }
+    })
+
+    return {
+      pages: `{\n${pages}}`,
+      layout,
+      noMatch,
+      loading
     }
-
-    switch (key) {
-      case '404':
-        noMatch = '/' + fileName
-        break
-      case 'layout':
-        layout = '/' + fileName
-        break
-      case 'loading':
-        loading = '/' + fileName
-        break
-      default:
-        pages += `'${key}': () => import('/${fileName}'),\n`
-    }
-  })
-
-  pages = `{\n${pages}}`
+  }
 
   return {
     name: 'vite-plugin-react-views',
+    configureServer(server) {
+      function handleFileChange(path: string) {
+        if (path.includes(dir) && !exclude(path)) {
+          const mod = server.moduleGraph.getModuleById(virtualName)
+          if (mod) {
+            server.moduleGraph.invalidateModule(mod)
+          }
+
+          server.ws.send({
+            type: 'full-reload',
+            path: '*'
+          })
+        }
+      }
+
+      server.watcher.on('add', handleFileChange)
+      server.watcher.on('unlink', handleFileChange)
+    },
     resolveId(id: string) {
       if (id === moduleName) {
         return virtualName
@@ -151,10 +174,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       if (id === virtualName) {
         return createCode({
           dir: /^\/{1}/.test(dir) ? dir : `/${dir}`,
-          loading,
-          layout,
-          noMatch,
-          pages
+          ...createPages()
         })
       }
     },
