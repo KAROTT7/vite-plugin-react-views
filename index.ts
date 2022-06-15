@@ -32,7 +32,7 @@ let pages = ${pages}, layouts = {}, routes = [];
 for (const [key, value] of Object.entries(pages)) {
 	const path = key.replace('${dir}/', '').replace(${new RegExp('\\.(jsx?|tsx?)')}, '')
 	const route = { paths: path.split('/'), value }
-
+  
 	if (path.includes('layout')) {
 		layouts[path.replace(${new RegExp('\/?layout')}, '')] = route
 	} else {
@@ -68,10 +68,11 @@ export default function Routes() {
         } else {
           const currentPath = paths.slice(0, i + 1).join('/')
           const existed = map[currentPath]
+
           if (existed) {
             prevRoutes = existed.children
           } else {
-            const layout = layouts[path]
+            const layout = layouts[currentPath]
             const route = {
               path,
               element: layout ? lazilize(layout.value) : undefined,
