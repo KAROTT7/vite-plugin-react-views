@@ -1,12 +1,11 @@
 {
   "name": "vite-plugin-react-views",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A vite plugin that create routes automatically.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsc -w",
-    "build": "tsc",
-    "test": "jest"
+    "build": "tsc"
   },
   "homepage": "https://github.com/KAROTT7/vite-plugin-react-views",
   "keywords": [
