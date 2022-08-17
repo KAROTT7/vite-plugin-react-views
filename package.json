@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsc -w",
-    "build": "rm -rf dist && vite build && tsc"
+    "build": "rm -rf dist && vite build && tsc index.ts --esModuleInterop --declaration --emitDeclarationOnly --declarationDir dist"
   },
   "homepage": "https://github.com/KAROTT7/vite-plugin-react-views",
   "keywords": [

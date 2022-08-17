@@ -34,6 +34,5 @@
 
 		"moduleResolution": "Node"
 	},
-  "exclude": ["./example/*", "dist"],
-  "include": ["index.ts"]
+  "exclude": ["./example/*", "dist"]
 }
