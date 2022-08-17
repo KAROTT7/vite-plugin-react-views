@@ -13,6 +13,8 @@
 		"noUnusedParameters": true,
 		"noImplicitAny": false,
     "declaration": true,
+    "declarationDir": "dist",
+    "emitDeclarationOnly": true,
 		// strict family
 		"strictBindCallApply": true,
 		"strictFunctionTypes": true,
@@ -20,20 +22,18 @@
 		"strictPropertyInitialization": true,
 
 		"baseUrl": ".",
-		"resolveJsonModule": true,
 		"target": "ESNext",
 
 		"useDefineForClassFields": true,
 		"lib": ["DOM", "DOM.Iterable", "ESNext"],
 		"skipLibCheck": true,
-		"esModuleInterop": false,
+		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
 		"strict": false,
 		"forceConsistentCasingInFileNames": true,
-		"module": "Commonjs",
 
-		"moduleResolution": "Node",
-		"isolatedModules": true
+		"moduleResolution": "Node"
 	},
-  "exclude": ["./example/*", "dist"]
+  "exclude": ["./example/*", "dist"],
+  "include": ["index.ts"]
 }
