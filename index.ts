@@ -6,52 +6,60 @@ interface Options {
   exclude?(path: string): boolean;
 }
 
-interface CreateCodeOptions extends Omit<Options, 'exclude'> {
-  layout?: string;
-  loading?: string;
-  noMatch?: string;
-  pages?: string;
+interface RouteObject {
+  paths: string[];
+  value: string;
 }
 
-function createCode(opts: CreateCodeOptions = {}) {
+interface ReactRoute {
+  element: string;
+  index?: boolean;
+  path?: string;
+  children?: ReactRoute[]
+}
+
+function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
-    dir,
-    loading,
-    layout,
-    noMatch,
-    pages
+    dir = 'src/pages',
+    exclude = () => false
   } = opts
 
-  return `import { lazy, Suspense, useMemo } from 'react'
-import { useRoutes } from 'react-router-dom'
-${loading ? `import Loading from '${loading}'` : ''}
-${layout ? `import Layout from '${layout}'` : ''}
-${noMatch ? `import NoMatch from '${noMatch}'` : ''}
+  const prefix = '\0'
+  const EXTS = ['js', 'jsx', 'ts', 'tsx']
+  const MODULE_NAME = 'route-views'
+  const VIRTUAL_MODULE = prefix + MODULE_NAME + `.${EXTS[1]}`
 
-let pages = ${pages}, layouts = {}, routes = [];
-for (const [key, value] of Object.entries(pages)) {
-	const path = key.replace('${dir}/', '').replace(${new RegExp('\\.(jsx?|tsx?)')}, '')
-	const route = { paths: path.split('/'), value }
+  function createPages() {
+    const files = fg.sync(`${dir}/**/*.{${EXTS.join(',')}}`)
 
-	if (path.includes('layout')) {
-		layouts[path.replace(${new RegExp('\/?layout')}, '')] = route
-	} else {
-		routes.push(route)
-	}
-}
+    let layouts = {}, routes: RouteObject[] = []
+    let layout: string | undefined, noMatch: string | undefined, loading: string | undefined
+    files.forEach(fileName => {
+      if (exclude(fileName)) {
+        return
+      }
 
-export default function Routes() {
-  const children = useMemo(() => {
-    function lazilize(importFn) {
-      const Component = lazy(importFn)
-      return (
-        <Suspense fallback={${loading ? '<Loading />' : 'null'}}>
-          <Component />
-        </Suspense>
-      )
-    }
+      const key = fileName.replace(dir + '/', '').replace(/(\..+)$/, (_, $1) => _.replace($1, ''))
+      if ('layout' === key) {
+        layout = '/' + fileName
+      } else if ('loading' === key) {
+        loading = '/' + fileName
+      } else if ('404' === key) {
+        noMatch = '/' + fileName
+      } else {
+        const value = `Lazilize(() => import('/${fileName}'))`
+        const path = key.replace(`${dir}/`, '').replace(new RegExp(`\\.(${EXTS.join('|')})`), '')
+        const route: RouteObject = { paths: path.split('/'), value }
 
-    let o = [], map = {};
+        if (path.endsWith('layout')) {
+          layouts[path.replace(new RegExp('\/?layout'), '')] = route
+        } else {
+          routes.push(route)
+        }
+      }
+    })
+
+    let o: ReactRoute[] = [], map = {};
     routes.forEach((route) => {
       const { paths } = route
       let prevRoutes = o
@@ -60,11 +68,14 @@ export default function Routes() {
         const path = paths[i]
 
         if (end) {
-          prevRoutes.push({
-            element: lazilize(route.value),
-            index: path === 'index',
-            path: path === 'index' ? undefined : path
-          })
+          const r: ReactRoute = { element: route.value }
+          if (path === 'index') {
+            r.index = true
+          } else {
+            r.path = path
+          }
+
+          prevRoutes.push(r)
         } else {
           const currentPath = paths.slice(0, i + 1).join('/')
           const existed = map[currentPath]
@@ -75,7 +86,7 @@ export default function Routes() {
             const layout = layouts[currentPath]
             const route = {
               path,
-              element: layout ? lazilize(layout.value) : undefined,
+              element: layout ? layout.value : undefined,
               children: []
             }
 
@@ -86,59 +97,9 @@ export default function Routes() {
       }
     })
 
-    return o
-  }, [])
-
-	const configs = [{
-    path: import.meta.env.BASE_URL,
-    element: ${layout ? '<Layout />' : 'undefined'},
-    children
-  }]
-
-  ${noMatch ? "configs.push({ path: '*', element: <NoMatch /> })" : ''}
-
-	return useRoutes(configs)
-}`
-}
-
-function VitePluginReactRouter(opts: Options = {}): PluginOption {
-  const {
-    dir = 'src/pages',
-    exclude = () => false
-  } = opts
-
-  let suffix = '.jsx'
-  const moduleName = 'route-views'
-  const prefix = '\0'
-  const virtualName = prefix + moduleName + suffix
-
-  function createPages() {
-    const files = fg.sync(`${dir}/**/*.{js,jsx,ts,tsx}`)
-    let pages = ``, layout = '', noMatch = '', loading = ''
-    files.forEach(fileName => {
-      const key = fileName.replace(dir + '/', '').replace(/(\..+)$/, (_, $1) => _.replace($1, ''))
-
-      if (exclude(fileName)) {
-        return
-      }
-
-      switch (key) {
-        case '404':
-          noMatch = '/' + fileName
-          break
-        case 'layout':
-          layout = '/' + fileName
-          break
-        case 'loading':
-          loading = '/' + fileName
-          break
-        default:
-          pages += `'${key}': () => import('/${fileName}'),\n`
-      }
-    })
-
     return {
-      pages: `{\n${pages}}`,
+      pages: JSON.stringify(o)
+                .replace(/"(Lazilize[^,]+)/g, (_, $1) => $1.slice(0, -1)),
       layout,
       noMatch,
       loading
@@ -150,7 +111,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     configureServer(server) {
       function handleFileChange(path: string) {
         if (path.includes(dir) && !exclude(path)) {
-          const mod = server.moduleGraph.getModuleById(virtualName)
+          const mod = server.moduleGraph.getModuleById(VIRTUAL_MODULE)
           if (mod) {
             server.moduleGraph.invalidateModule(mod)
           }
@@ -166,16 +127,38 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       server.watcher.on('unlink', handleFileChange)
     },
     resolveId(id: string) {
-      if (id === moduleName) {
-        return virtualName
+      if (id === MODULE_NAME) {
+        return VIRTUAL_MODULE
       }
     },
     load(id) {
-      if (id === virtualName) {
-        return createCode({
-          dir: /^\/{1}/.test(dir) ? dir : `/${dir}`,
-          ...createPages()
-        })
+      if (id === VIRTUAL_MODULE) {
+        const { loading, layout, noMatch, pages } = createPages()
+
+        return `import { lazy, Suspense } from 'react'
+${loading ? `import Loading from '${loading}'` : ''}
+${layout ? `import Layout from '${layout}'` : ''}
+${noMatch ? `import NoMatch from '${noMatch}'` : ''}
+
+function Lazilize(importFn) {
+  const Component = lazy(importFn)
+  return (
+    <Suspense
+      fallback={${loading ? '<Loading />' : 'undefined'}}
+    >
+      <Component />
+    </Suspense>
+  )
+}
+
+export default [
+  {
+    path: '/',
+    element: ${layout ? '<Layout />' : 'undefined'},
+    children: ${pages}
+  },
+  ${noMatch ? '{ path: "*", element: <NoMatch /> }' : '{}'}
+]`
       }
     },
   }
