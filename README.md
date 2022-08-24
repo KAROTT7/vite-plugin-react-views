@@ -23,9 +23,13 @@
   })
 
   // src/App.jsx
-  import { BrowserRouter } from 'react-router-dom'
+  import { BrowserRouter, useRoutes } from 'react-router-dom'
   // 请引入 route-views
-  import Routes from 'route-views'
+  import routes from 'route-views'
+
+  function Routes() {
+    return useRoutes(routes)
+  }
 
   function App() {
     return (
@@ -65,7 +69,7 @@ src/pages/loading 文件将会作为全局 Loading 组件（将会在加载路�
 src/pages/404 文件将会配置成 404 路由，且是同步加载。
 
 ### BaseUrl
-使用 `import.meta.env.BASE_URL` 作为基础路径。
+使用 '/' 作为基础路径。
 
 ### Typescript
 ```js
@@ -73,9 +77,16 @@ src/pages/404 文件将会配置成 404 路由，且是同步加载。
 /// <reference types="vite/client" />
 
 declare module 'route-views' {
-	function Routes(): JSX.Element;
+  interface RouteObject {
+    children?: RouteObject[];
+    element?: React.ReactNode;
+    index?: boolean;
+    path?: string;
+  }
 
-	export default Routes;
+  const routes: RouteObject[];
+
+  export default routes;
 }
 ```
 
