@@ -77,14 +77,7 @@ src/pages/404 文件将会配置成 404 路由，且是同步加载。
 /// <reference types="vite/client" />
 
 declare module 'route-views' {
-  interface RouteObject {
-    children?: RouteObject[];
-    element?: React.ReactNode;
-    index?: boolean;
-    path?: string;
-  }
-
-  const routes: RouteObject[];
+  const routes: (import('react-router-dom').RouteObject)[];
 
   export default routes;
 }
