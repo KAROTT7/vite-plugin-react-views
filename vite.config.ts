@@ -10,7 +10,7 @@ export default defineConfig({
       fileName: 'index'
     },
     rollupOptions: {
-      external: ['fast-glob']
+      external: ['node:path', 'node:fs']
     }
   },
 })

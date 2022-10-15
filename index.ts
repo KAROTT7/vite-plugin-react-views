@@ -1,116 +1,101 @@
-import fg from 'fast-glob'
+import fs from 'node:fs'
+import path from 'node:path'
 import type { PluginOption } from 'vite'
+import type { RouteObject } from 'react-router-dom'
 
 interface Options {
   dir?: string;
   exclude?(path: string): boolean;
 }
 
-interface RouteObject {
-  paths: string[];
-  value: string;
-}
-
-interface ReactRoute {
-  element: string;
-  index?: boolean;
-  path?: string;
-  children?: ReactRoute[]
-}
-
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
-    exclude = () => false
+    exclude
   } = opts
 
-  const prefix = '\0'
   const EXTS = ['js', 'jsx', 'ts', 'tsx']
+  const ROUTE_RE = new RegExp(`\\.(${EXTS.join('|')})$`)
   const MODULE_NAME = 'route-views'
-  const VIRTUAL_MODULE = prefix + MODULE_NAME + `.${EXTS[1]}`
+  const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${EXTS[1]}`
 
-  function createPages() {
-    const files = fg.sync(`${dir}/**/*.{${EXTS.join(',')}}`)
+  function createRoutes(folder: string) {
+    const originFolder = path.join(process.cwd(), dir)
+    const originFolderStat = fs.statSync(originFolder)
+    let loading = ''
 
-    let layouts = {}, routes: RouteObject[] = []
-    let layout: string | undefined, noMatch: string | undefined, loading: string | undefined
-    files.forEach(fileName => {
-      if (exclude(fileName)) {
+    if (!originFolderStat.isDirectory()) {
+      throw new Error(`${folder} must be a folder.`)
+    }
+
+    const routes: RouteObject[] = [
+      {
+        path: '/',
+        children: []
+      }
+    ]
+
+    function normalizedFileName(id: string) {
+      const index = id.lastIndexOf('.')
+      return index > -1 ? id.slice(0, index) : id
+    }
+
+    const getRouteImport = (id: string) => `Lazilize(() => import('${id}'))`
+
+    function readFiles(id: string, route: RouteObject, isDirectory = false, root = false) {
+      if (exclude?.(id)) {
         return
       }
 
-      const key = fileName.replace(dir + '/', '').replace(/(\..+)$/, (_, $1) => _.replace($1, ''))
-      if ('layout' === key) {
-        layout = '/' + fileName
-      } else if ('loading' === key) {
-        loading = '/' + fileName
-      } else if ('404' === key) {
-        noMatch = '/' + fileName
-      } else {
-        const value = `Lazilize(() => import('/${fileName}'))`
-        const path = key.replace(`${dir}/`, '').replace(new RegExp(`\\.(${EXTS.join('|')})`), '')
-        const route: RouteObject = { paths: path.split('/'), value }
+      const basename = id.endsWith(dir) ? '/' : path.basename(id)
 
-        if (path.endsWith('layout')) {
-          layouts[path.replace(new RegExp('\/?layout'), '')] = route
-        } else {
-          routes.push(route)
-        }
-      }
-    })
+      if (isDirectory) {
+        const files = fs.readdirSync(id)
 
-    let o: ReactRoute[] = [], map = {};
-    routes.forEach((route) => {
-      const { paths } = route
-      let prevRoutes = o
-      for (let i = 0; i < paths.length; ++i) {
-        const end = paths[i + 1] === undefined
-        const path = paths[i]
+        files.forEach(file => {
+          const nextFile = path.join(id, file)
+          const stat = fs.statSync(nextFile)
 
-        if (end) {
-          const r: ReactRoute = { element: route.value }
-          if (path === 'index') {
-            r.index = true
+          if (stat.isDirectory()) {
+            const newRoute = { path: path.basename(nextFile) } as RouteObject
+            ;(route.children || (route.children = [])).push(newRoute)
+            readFiles(nextFile, newRoute, true, false)
           } else {
-            r.path = path
+            readFiles(nextFile, route, false, true)
+          }
+        })
+      } else if (ROUTE_RE.test(basename)) {
+        const plainBaseName = normalizedFileName(basename)
+
+        if (root && plainBaseName === '404') {
+          routes.push({ path: '*', element: getRouteImport(id) })
+        } else if (root && plainBaseName === 'loading') {
+          loading = id
+        } else if (plainBaseName === 'layout') {
+          route.element = getRouteImport(id)
+        } else {
+          const newRoute = { element: getRouteImport(id) } as RouteObject
+          if (plainBaseName === 'index') {
+            newRoute.index = true
+          } else {
+            newRoute.path = plainBaseName
           }
 
-          prevRoutes.push(r)
-        } else {
-          const currentPath = paths.slice(0, i + 1).join('/')
-          const existed = map[currentPath]
-
-          if (existed) {
-            prevRoutes = existed.children
-          } else {
-            const layout = layouts[currentPath]
-            const route = {
-              path,
-              element: layout ? layout.value : undefined,
-              children: []
-            }
-
-            prevRoutes.push(map[currentPath] = route)
-            prevRoutes = route.children
-          }
+          ;(route.children || (route.children = [])).push(newRoute)
         }
       }
-    })
-
-    return {
-      pages: JSON.stringify(o)
-                .replace(/"(Lazilize[^,]+)/g, (_, $1) => $1.slice(0, -1)),
-      layout,
-      noMatch,
-      loading
     }
+
+    readFiles(originFolder, routes[0]!, true, true)
+
+    return { routes, loading }
   }
 
   return {
     name: 'vite-plugin-react-views',
     configureServer(server) {
       function handleFileChange(path: string) {
-        if (path.includes(dir) && !exclude(path)) {
+        if (path.includes(dir) && !exclude?.(path)) {
           const mod = server.moduleGraph.getModuleById(VIRTUAL_MODULE)
           if (mod) {
             server.moduleGraph.invalidateModule(mod)
@@ -133,12 +118,10 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     },
     load(id) {
       if (id === VIRTUAL_MODULE) {
-        const { loading, layout, noMatch, pages } = createPages()
+        const { loading, routes } = createRoutes(dir)
 
         return `import { lazy, Suspense } from 'react'
 ${loading ? `import Loading from '${loading}'` : ''}
-${layout ? `import Layout from '${layout}'` : ''}
-${noMatch ? `import NoMatch from '${noMatch}'` : ''}
 
 function Lazilize(importFn) {
   const Component = lazy(importFn)
@@ -151,14 +134,7 @@ function Lazilize(importFn) {
   )
 }
 
-export default [
-  {
-    path: '/',
-    element: ${layout ? '<Layout />' : 'undefined'},
-    children: ${pages}
-  },
-  ${noMatch ? '{ path: "*", element: <NoMatch /> }' : '{}'}
-]`
+export default ${JSON.stringify(routes).replace(/"(Lazilize[^,}]+)/g, (_, $1) => $1.slice(0, -1))}`
       }
     },
   }
