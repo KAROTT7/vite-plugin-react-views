@@ -79,7 +79,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           if (plainBaseName === 'index') {
             newRoute.index = true
           } else {
-            newRoute.path = plainBaseName
+            newRoute.path = /^_/.test(plainBaseName) ? `:${plainBaseName.slice(1)}` : plainBaseName
           }
 
           ;(route.children || (route.children = [])).push(newRoute)
