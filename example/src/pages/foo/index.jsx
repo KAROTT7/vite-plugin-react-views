@@ -1,3 +1,3 @@
 export default function Foo() {
-  return 'foo'
+  return <div className="foo-content">foo</div>
 }

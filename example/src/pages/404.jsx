@@ -1,3 +1,7 @@
 export default function NoMatch() {
-  return '404'
+  return (
+    <div className="no-match-content">
+      404
+    </div>
+  )
 }

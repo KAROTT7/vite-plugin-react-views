@@ -3,7 +3,8 @@ import { Outlet } from 'react-router-dom'
 export default function FooLayout() {
   return (
     <>
-      foo-layout-<Outlet />
+      <div className="foo-layout">layout-foo</div>
+      <Outlet />
     </>
   )
 }
