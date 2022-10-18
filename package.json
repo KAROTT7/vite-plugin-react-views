@@ -7,7 +7,10 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsc -w",
-    "build": "rm -rf dist && vite build && tsc index.ts --esModuleInterop --declaration --emitDeclarationOnly --declarationDir dist"
+    "build": "rm -rf dist && vite build && tsc index.ts --esModuleInterop --declaration --emitDeclarationOnly --declarationDir dist",
+    "test": "pnpm test-serve && pnpm test-build",
+    "test-serve": "vitest run",
+    "test-build": "VITEST_BUILD=1 vitest run"
   },
   "homepage": "https://github.com/KAROTT7/vite-plugin-react-views",
   "keywords": [
@@ -25,8 +28,10 @@
   "devDependencies": {
     "@types/react": "^18.0.21",
     "jest": "^27.5.1",
+    "playwright-chromium": "^1.27.1",
     "react-router-dom": "^6.4.2",
     "typescript": "^4.7.4",
-    "vite": "^3.1.8"
+    "vite": "^3.1.8",
+    "vitest": "^0.24.3"
   }
 }
