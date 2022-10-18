@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { PluginOption } from 'vite'
+import type { PluginOption, ResolvedConfig } from 'vite'
 import type { RouteObject } from 'react-router-dom'
 
 interface Options {
@@ -14,13 +14,14 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     exclude
   } = opts
 
+  let _config: ResolvedConfig
   const EXTS = ['js', 'jsx', 'ts', 'tsx']
   const ROUTE_RE = new RegExp(`\\.(${EXTS.join('|')})$`)
   const MODULE_NAME = 'route-views'
   const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${EXTS[1]}`
 
   function createRoutes(folder: string) {
-    const originFolder = path.join(process.cwd(), dir)
+    const originFolder = path.join(_config.root!, dir)
     const originFolderStat = fs.statSync(originFolder)
     let loading = ''
 
@@ -93,6 +94,9 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
 
   return {
     name: 'vite-plugin-react-views',
+    configResolved(c) {
+      _config = c
+    },
     configureServer(server) {
       function handleFileChange(path: string) {
         if (path.includes(dir) && !exclude?.(path)) {
