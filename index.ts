@@ -124,10 +124,11 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
 
       server.watcher.on('add', handleFileChange)
       server.watcher.on('unlink', handleFileChange)
-      server.watcher.on('change', (id, stat) => {
-        if (emptyFiles.has(id) && stat?.size) {
-          handleFileChange(id)
-          emptyFiles.delete(id)
+      server.watcher.on('change', (path) => {
+        const stat = fs.statSync(path)
+        if (emptyFiles.has(path) && stat.size) {
+          handleFileChange(path)
+          emptyFiles.delete(path)
         }
       })
     },
