@@ -8,6 +8,10 @@ interface Options {
   exclude?(path: string): boolean;
 }
 
+function slash(id: string) {
+  return id.replace(/\\/g, '/')
+}
+
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
@@ -99,7 +103,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     },
     configureServer(server) {
       function handleFileChange(path: string) {
-        if (path.includes(dir) && !exclude?.(path)) {
+        if (slash(path).includes(dir) && !exclude?.(path)) {
           const mod = server.moduleGraph.getModuleById(VIRTUAL_MODULE)
           if (mod) {
             server.moduleGraph.invalidateModule(mod)
