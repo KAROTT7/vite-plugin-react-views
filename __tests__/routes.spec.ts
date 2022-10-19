@@ -59,16 +59,21 @@ if (!process.env.VITEST_BUILD) {
     await page.goBack()
 
     const aboutFile = path.join(process.cwd(), 'example/src/pages/about.jsx')
+
+    fs.writeFileSync(aboutFile, '')
+    await page.click('.about')
+    expect(await page.textContent('.no-match-content')).toBe('404')
+
     fs.writeFileSync(aboutFile, `export default function About() {
   return <div className="content">about</div>
 }`)
 
-    await page.click('.about')
 
     expect(await page.textContent('.layout')).toBe('layout')
     expect(await page.textContent('.content')).toBe('about')
 
     fs.rmSync(aboutFile)
+    expect(await page.textContent('.no-match-content')).toBe('404')
   })
 }
 

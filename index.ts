@@ -23,6 +23,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const ROUTE_RE = new RegExp(`\\.(${EXTS.join('|')})$`)
   const MODULE_NAME = 'route-views'
   const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${EXTS[1]}`
+  const emptyFiles = new Set()
 
   function createRoutes(folder: string) {
     const originFolder = path.join(_config.root!, dir)
@@ -70,6 +71,11 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           }
         })
       } else if (ROUTE_RE.test(basename)) {
+        if (!fs.statSync(id).size) {
+          emptyFiles.add(id)
+          return
+        }
+
         const plainBaseName = normalizedFileName(basename)
 
         if (root && plainBaseName === '404') {
@@ -118,6 +124,12 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
 
       server.watcher.on('add', handleFileChange)
       server.watcher.on('unlink', handleFileChange)
+      server.watcher.on('change', (id, stat) => {
+        if (emptyFiles.has(id) && stat?.size) {
+          handleFileChange(id)
+          emptyFiles.delete(id)
+        }
+      })
     },
     resolveId(id: string) {
       if (id === MODULE_NAME) {
