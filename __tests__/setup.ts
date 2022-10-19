@@ -34,7 +34,8 @@ beforeAll(async () => {
 })
 
 async function startPrepare() {
-  const testDir = path.resolve(process.cwd(), 'example')
+  const testDir = path.join(process.cwd(), 'example')
+
   const res = await loadConfigFromFile(
     {
       command: isBuild ? 'build' : 'serve',
@@ -52,7 +53,7 @@ async function startPrepare() {
     }
   }
 
-  testConfig = mergeConfig(options, res ? res.config : {})
+  testConfig = mergeConfig(options, res!.config)
   if (isBuild) {
     await build(testConfig)
     const previewServer = await preview(testConfig)

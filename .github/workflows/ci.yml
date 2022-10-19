@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, git-actions]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    timeout-minutes: 20
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2.2.4
+        with:
+          version: 6.0.2
+
+      - name: Set node version to ${{ matrix.node_version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
+
+      - name: Install dependencies
+        run: |
+          pnpm install
+          cd example
+          pnpm install
+          cd ..
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+

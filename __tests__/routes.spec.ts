@@ -4,57 +4,57 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 test('/', async () => {
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.content')).toEqual('index')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.content')).toBe('index')
 })
 
 test('/contact', async () => {
   await page.click('.contact')
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.content')).toEqual('contact')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.content')).toBe('contact')
 })
 
 test('/foo', async () => {
   await page.click('.foo')
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.foo-layout')).toEqual('layout-foo')
-  expect(await page.textContent('.foo-content')).toEqual('foo')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.foo-layout')).toBe('layout-foo')
+  expect(await page.textContent('.foo-content')).toBe('foo')
 })
 
 test('/foo/bar', async () => {
   await page.click('.foo-bar')
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.foo-layout')).toEqual('layout-foo')
-  expect(await page.textContent('.foo-content')).toEqual('bar')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.foo-layout')).toBe('layout-foo')
+  expect(await page.textContent('.foo-content')).toBe('bar')
 })
 
 test('/foo/:type', async () => {
   await page.click('.foo-type')
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.foo-layout')).toEqual('layout-foo')
-  expect(await page.textContent('.foo-content')).toEqual('a')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.foo-layout')).toBe('layout-foo')
+  expect(await page.textContent('.foo-content')).toBe('a')
 })
 
 test('index', async () => {
   await page.click('.index')
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.content')).toEqual('index')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.content')).toBe('index')
 })
 
 test('/utils (exclude)', async () => {
   await page.click('.utils')
-  expect(await page.textContent('.no-match-content')).toEqual('404')
+  expect(await page.textContent('.no-match-content')).toBe('404')
 
   await page.goBack()
   expect(page.isHidden('.no-match-content')).toBeTruthy()
-  expect(await page.textContent('.layout')).toEqual('layout')
-  expect(await page.textContent('.content')).toEqual('index')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.content')).toBe('index')
 })
 
 if (!process.env.VITEST_BUILD) {
   test('HMR', async () => {
     await page.click('.about')
-    expect(await page.textContent('.no-match-content')).toEqual('404')
+    expect(await page.textContent('.no-match-content')).toBe('404')
 
     await page.goBack()
 
@@ -64,8 +64,9 @@ if (!process.env.VITEST_BUILD) {
 }`)
 
     await page.click('.about')
-    expect(await page.textContent('.layout')).toEqual('layout')
-    expect(await page.textContent('.content')).toEqual('about')
+
+    expect(await page.textContent('.layout')).toBe('layout')
+    expect(await page.textContent('.content')).toBe('about')
 
     fs.rmSync(aboutFile)
   })
