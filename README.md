@@ -1,75 +1,54 @@
 # vite-plugin-react-views
-基于文件结构使用 `react-router-dom@^6` 自动创建路由。
+A vite plugin based on File System for creating routes automatically.
 
-### 用法
-- 安装
-  ```js
-  npm install vite-plugin-react-views --save-dev
-  ```
-- 使用
-  ```js
-  // vite.config.js
-  import { defineConfig } from 'vite'
-  import react from '@vitejs/plugin-react'
-  import router from 'vite-plugin-react-views'
+Some rules you need to know:
+- Requirement: `react-router-dom@^6`
+- All files in conventional directory will become routes, except empty files and excluded files.
+- For code splitting, all routes will be imported dynamically by `React.lazy`, except Layout/Loading/404 route in root directory.
+- Every file named `layout` in directory will become `layout route`.
+- `404` file in root directory will become `404 route`.
+- `loading` file in root directory will show before other routes finish import.
+- A file name starts with `_` character will be dynamic route, or use `[name]` like Nextjs.
 
-  export default defineConfig({
-    plugins: [
-      react(),
-      // 执行 router() 后会自动将 src/pages
-      // 下的文件(js,jsx,ts,tsx)创建成路由
-      router()
-    ]
-  })
+### Installation
+```js
+npm install vite-plugin-react-views --save-dev
+```
 
-  // src/App.jsx
-  import { BrowserRouter, useRoutes } from 'react-router-dom'
-  // 请引入 route-views
-  import routes from 'route-views'
+### Usage
+```js
+// vite.config.js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import router from 'vite-plugin-react-views'
 
-  function Routes() {
-    return useRoutes(routes)
-  }
+export default defineConfig({
+  plugins: [react(), router()]
+})
 
-  function App() {
-    return (
-      <BrowserRouter>
-        <Routes />
-      </BrowserRouter>
-    )
-  }
+// App.jsx
+import { useRoutes } from 'react-router-dom'
+// Requirement: import routes
+import routes from 'route-views'
 
-  export default App
-  ```
+function Routes() {
+  return useRoutes(routes)
+}
 
-### options
-  - dir: string
-    
-    默认值：src/pages
+// Other codes
+```
 
-  - exclude: (path) => boolean
+### Options
 
-    如果返回 `true`，则不会配置成路由
+- dir: string
 
-### 路由
-按照约定，src/pages 下的所有文件都会配置成路由，并使用 `React.lazy` 懒加载
-- `/a/index.js` 会配置成默认路由 -> `/a`
-- `/a/_type.js` 会配置成动态路由 -> `/a/:type`
-- 其他则会配置成静态路由
+  default: `'src/pages'`
 
-### Layout
-- src/pages/layout 将作为根布局，同步加载
+  A directory path for crawling.
 
-- 其他文件夹下的布局将会是异步加载；按照约定，`src/pages/a/layout` 将会是路由 /a 的布局组件
+- exclude(path): boolean
 
-### Loading
-src/pages/loading 文件将会作为全局 Loading 组件（将会在加载路由时展示），且是同步加载。
-
-### 404
-src/pages/404 文件将会配置成 404 路由。
-
-### BaseUrl
-使用 '/' 作为基础路径。
+  A file will not become a route if return false.
 
 ### Typescript
 ```js
@@ -83,7 +62,5 @@ declare module 'route-views' {
 }
 ```
 
-
 ### License
 MIT
-  
