@@ -1,7 +1,7 @@
 {
   "name": "vite-plugin-react-views",
   "version": "0.0.10",
-  "description": "A vite plugin that create routes automatically.",
+  "description": "A vite plugin based on File System for creating routes automatically.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
