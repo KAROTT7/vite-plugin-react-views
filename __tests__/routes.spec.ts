@@ -68,7 +68,6 @@ if (!process.env.VITEST_BUILD) {
   return <div className="content">about</div>
 }`)
 
-
     expect(await page.textContent('.layout')).toBe('layout')
     expect(await page.textContent('.content')).toBe('about')
 

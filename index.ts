@@ -12,6 +12,10 @@ function slash(id: string) {
   return id.replace(/\\/g, '/')
 }
 
+function readContent(id: string) {
+  return fs.readFileSync(id).toString().trim()
+}
+
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
@@ -24,6 +28,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const MODULE_NAME = 'route-views'
   const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${EXTS[1]}`
   const emptyFiles = new Set()
+  const nonEmptyFiles = new Set()
 
   function createRoutes(folder: string) {
     const originFolder = path.join(_config.root!, dir)
@@ -71,11 +76,13 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           }
         })
       } else if (ROUTE_RE.test(basename)) {
-        if (!fs.statSync(id).size) {
+        const content = readContent(id)
+        if (!content) {
           emptyFiles.add(id)
           return
         }
 
+        nonEmptyFiles.add(id)
         const plainBaseName = normalizedFileName(basename)
 
         if (root && plainBaseName === '404') {
@@ -126,10 +133,15 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       server.watcher.on('add', handleFileChange)
       server.watcher.on('unlink', handleFileChange)
       server.watcher.on('change', (path) => {
-        const stat = fs.statSync(path)
-        if (emptyFiles.has(path) && stat.size) {
-          handleFileChange(path)
+        const content = readContent(path)
+        if (emptyFiles.has(path) && content) {
           emptyFiles.delete(path)
+          nonEmptyFiles.add(path)
+          handleFileChange(path)
+        } else if (nonEmptyFiles.has(path) && !content) {
+          emptyFiles.add(path)
+          nonEmptyFiles.delete(path)
+          handleFileChange(path)
         }
       })
     },
