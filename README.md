@@ -4,11 +4,11 @@ A vite plugin based on File System for creating routes automatically.
 Some rules you need to know:
 - Requirement: `react-router-dom@^6`
 - All files in conventional directory will become routes, except empty files and excluded files.
-- For code splitting, all routes will be imported dynamically by `React.lazy`, except Layout/Loading/404 route in root directory.
-- Every file named `layout` in directory will become `layout route`.
-- `404` file in root directory will become `404 route`.
-- `loading` file in root directory will show before other routes finish import.
-- A file name starts with `_` character will be dynamic route, or use `[name]` like Nextjs.
+- For code splitting, all routes will be imported dynamically by `React.lazy`, except layout/loading route in root directory.
+- A file starts with a `_` character will be `dynamic route`.
+- Every file named `layout` in directory will become layout route.
+- A `404` file in root directory will become `404 route`.
+- A `loading` file in root directory will show before other routes finish import.
 
 ### Installation
 ```js
