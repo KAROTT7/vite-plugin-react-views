@@ -48,7 +48,7 @@ function Routes() {
 
 - exclude(path): boolean
 
-  A file will not become a route if return false.
+  A file will not become a route if return true.
 
 ### Typescript
 ```js
