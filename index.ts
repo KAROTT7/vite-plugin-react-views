@@ -161,7 +161,7 @@ function Lazilize(importFn) {
   const Component = lazy(importFn)
   return (
     <Suspense
-      fallback={${loading ? '<Loading />' : 'undefined'}}
+      fallback={${loading ? '<Loading />' : 'null'}}
     >
       <Component />
     </Suspense>
