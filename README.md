@@ -52,7 +52,7 @@ function Routes() {
 
 - sync(path): boolean
 
-  A route will be imported directly if return true.
+  A route will be imported synchronously if return true.
 
 ### Typescript
 ```js
