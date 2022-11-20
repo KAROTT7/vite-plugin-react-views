@@ -8,6 +8,10 @@ test('/', async () => {
   expect(await page.textContent('.content')).toBe('index')
 })
 
+test('Test synchronous route', async () => {
+  expect(await page.textContent('#sync')).toBe('sync')
+})
+
 test('/contact', async () => {
   await page.click('.contact')
   expect(await page.textContent('.layout')).toBe('layout')

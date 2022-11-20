@@ -9,6 +9,9 @@ export default defineConfig({
     router({
       exclude(path) {
         return path.includes('utils')
+      },
+      sync(path) {
+        return path.includes('sync')
       }
     })
   ]

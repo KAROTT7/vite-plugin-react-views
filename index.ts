@@ -6,6 +6,7 @@ import type { RouteObject } from 'react-router-dom'
 interface Options {
   dir?: string;
   exclude?(path: string): boolean;
+  sync?(path: string): boolean;
 }
 
 function slash(id: string) {
@@ -19,7 +20,8 @@ function readContent(id: string) {
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
-    exclude
+    exclude,
+    sync
   } = opts
 
   let _config: ResolvedConfig
@@ -33,12 +35,13 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   function createRoutes(folder: string) {
     const originFolder = path.join(_config.root!, dir)
     const originFolderStat = fs.statSync(originFolder)
-    let loading = ''
 
     if (!originFolderStat.isDirectory()) {
       throw new Error(`${folder} must be a folder.`)
     }
 
+    const syncRoutesMap = new Map()
+    let loadingId = ''
     const routes: RouteObject[] = [
       {
         path: '/',
@@ -51,7 +54,28 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       return index > -1 ? id.slice(0, index) : id
     }
 
-    const getRouteImport = (id: string) => `Lazilize(() => import('${id}'))`
+    function getRouteElement(id: string, syncRoute = false) {
+      if (syncRoute) {
+        const name = id.slice(
+          originFolder.length,
+          id.indexOf(path.extname(id))
+        ).split('/').map(segment => {
+          if (segment === '404') {
+            return 'NoMatch'
+          } else if (segment) {
+            return segment.charAt(0).toUpperCase() + segment.slice(1)
+          }
+
+          return segment
+        }).join('')
+
+        syncRoutesMap.set(id, name)
+
+        return '<' + name + ' />'
+      }
+
+      return `Lazilize(() => import('${id}'))`
+    }
 
     function readFiles(id: string, route: RouteObject, isDirectory = false, root = false) {
       if (exclude?.(id)) {
@@ -84,15 +108,17 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
 
         nonEmptyFiles.add(id)
         const plainBaseName = normalizedFileName(basename)
+        const isSync = !!sync?.(id)
 
         if (root && plainBaseName === '404') {
-          routes.push({ path: '*', element: getRouteImport(id) })
+          routes.push({ path: '*', element: getRouteElement(id, isSync) })
         } else if (root && plainBaseName === 'loading') {
-          loading = id
+          loadingId = id
+          getRouteElement(id, true)
         } else if (plainBaseName === 'layout') {
-          route.element = getRouteImport(id)
+          route.element = getRouteElement(id, root ? true : isSync)
         } else {
-          const newRoute = { element: getRouteImport(id) } as RouteObject
+          const newRoute = { element: getRouteElement(id, isSync) } as RouteObject
           if (plainBaseName === 'index') {
             newRoute.index = true
           } else {
@@ -107,7 +133,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
 
     readFiles(originFolder, routes[0]!, true, true)
 
-    return { routes, loading }
+    return { routes, loadingId, syncRoutesMap }
   }
 
   return {
@@ -152,23 +178,27 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     },
     load(id) {
       if (id === VIRTUAL_MODULE) {
-        const { loading, routes } = createRoutes(dir)
+        const { routes, loadingId, syncRoutesMap } = createRoutes(dir)
+        let syncRouteString = ''
+        syncRoutesMap.forEach((value, key) => {
+          syncRouteString += `import ${value} from '${key}'\n`
+        })
 
         return `import { lazy, Suspense } from 'react'
-${loading ? `import Loading from '${loading}'` : ''}
+${syncRouteString}
 
 function Lazilize(importFn) {
   const Component = lazy(importFn)
   return (
     <Suspense
-      fallback={${loading ? '<Loading />' : 'null'}}
+      fallback={${syncRoutesMap.has(loadingId) ? '<Loading />' : 'null'}}
     >
       <Component />
     </Suspense>
   )
 }
 
-export default ${JSON.stringify(routes).replace(/"(Lazilize[^,}]+)/g, (_, $1) => $1.slice(0, -1))}`
+export default ${JSON.stringify(routes).replace(/"(Lazilize[^,}]+)/g, (_, $1) => $1.slice(0, -1)).replace(/"(<[A-Z]{1}[^\s]+ \/>)"/g, '$1')}`
       }
     },
   }

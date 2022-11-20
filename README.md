@@ -50,6 +50,10 @@ function Routes() {
 
   A file will not become a route if return true.
 
+- sync(path): boolean
+
+  A route will be imported directly if return true.
+
 ### Typescript
 ```js
 // src/vite-env.d.ts
