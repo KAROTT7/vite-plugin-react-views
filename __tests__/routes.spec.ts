@@ -9,7 +9,11 @@ test('/', async () => {
 })
 
 test('Test synchronous route', async () => {
-  expect(await page.textContent('#sync')).toBe('sync')
+  expect((await page.content()).includes('id="sync"')).toBeTruthy()
+})
+
+test('Nested layout should not be imported synchronously', async () => {
+  expect((await page.content()).includes('id="foo_layout"')).toBeFalsy()
 })
 
 test('/contact', async () => {

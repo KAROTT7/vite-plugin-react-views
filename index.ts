@@ -96,7 +96,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
             ;(route.children || (route.children = [])).push(newRoute)
             readFiles(nextFile, newRoute, true, false)
           } else {
-            readFiles(nextFile, route, false, true)
+            readFiles(nextFile, route, false, basename === '/')
           }
         })
       } else if (ROUTE_RE.test(basename)) {
