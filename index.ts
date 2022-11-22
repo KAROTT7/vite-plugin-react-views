@@ -78,9 +78,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     }
 
     function readFiles(id: string, route: RouteObject, isDirectory = false, root = false) {
-      if (exclude?.(id)) {
-        return
-      }
+      if (exclude?.(id)) return
 
       const basename = id.endsWith(dir) ? '/' : path.basename(id)
 
@@ -89,8 +87,9 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
 
         files.forEach(file => {
           const nextFile = path.join(id, file)
-          const stat = fs.statSync(nextFile)
+          if (exclude?.(nextFile)) return
 
+          const stat = fs.statSync(nextFile)
           if (stat.isDirectory()) {
             const newRoute = { path: path.basename(nextFile) } as RouteObject
             ;(route.children || (route.children = [])).push(newRoute)

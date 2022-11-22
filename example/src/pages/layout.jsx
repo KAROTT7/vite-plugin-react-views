@@ -10,7 +10,8 @@ export default function Layout() {
         <Link className="utils" to="/utils">/utils</Link>{' '}
         <Link className="foo" to="/foo">/foo</Link>{' '}
         <Link className="foo-bar" to="/foo/bar">/foo/bar</Link>{' '}
-        <Link className="foo-type" to="/foo/a">/foo/:type</Link>
+        <Link className="foo-type" to="/foo/a">/foo/:type</Link>{' '}
+        <Link className="excluded-components" to="/components">/excluded/components</Link>
       </div>
       <div className="layout">layout</div>
       <Outlet />

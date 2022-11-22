@@ -13,6 +13,13 @@ test('Test synchronous route', async () => {
 })
 
 test('Nested layout should not be imported synchronously', async () => {
+  await page.click('.excluded-components')
+  expect(await page.textContent('.no-match-content')).toBe('404')
+  
+  await page.goBack()
+})
+
+test('Should not create Route for excluded directory', async () => {
   expect((await page.content()).includes('id="foo_layout"')).toBeFalsy()
 })
 

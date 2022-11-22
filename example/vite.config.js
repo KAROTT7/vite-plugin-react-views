@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     router({
       exclude(path) {
-        return path.includes('utils')
+        return path.includes('utils') || path.includes('components')
       },
       sync(path) {
         return path.includes('sync')
