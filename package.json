@@ -6,7 +6,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "tsc -w",
+    "dev": "vite build --watch",
     "build": "rm -rf dist && vite build && tsc index.ts --esModuleInterop --declaration --emitDeclarationOnly --declarationDir dist",
     "test": "pnpm test-serve && pnpm test-build",
     "test-serve": "vitest run",
