@@ -2,9 +2,21 @@ name: CI
 
 on:
   push:
-    branches: [main, git-actions]
+    branches:
+      - main
+      - dev
+    tags-ignore:
+      - v*
+    paths-ignore:
+      - "**/README.md"
   pull_request:
-    branches: [main]
+    types:
+      - open
+      - reopened
+      - synchronize
+      - ready_for_review
+    paths-ignore:
+      - "**/README.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
