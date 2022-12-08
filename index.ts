@@ -7,6 +7,7 @@ interface Options {
   dir?: string;
   exclude?(path: string): boolean;
   sync?(path: string): boolean;
+  extensions?: string[];
 }
 
 function slash(id: string) {
@@ -21,14 +22,14 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
     exclude,
-    sync
+    sync,
+    extensions = ['js', 'jsx', 'ts', 'tsx'] // mdx
   } = opts
 
   let _config: ResolvedConfig
-  const EXTS = ['js', 'jsx', 'ts', 'tsx']
-  const ROUTE_RE = new RegExp(`\\.(${EXTS.join('|')})$`)
+  const ROUTE_RE = new RegExp(`\\.(${extensions.join('|')})$`)
   const MODULE_NAME = 'route-views'
-  const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${EXTS[1]}`
+  const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${extensions[1]}`
   const emptyFiles = new Set()
   const nonEmptyFiles = new Set()
 
