@@ -59,8 +59,6 @@ function Routes() {
   default: `['js', 'jsx', 'ts', 'tsx']`
 
   Filename extensions which will be scanned and imported as route elements.
-  > You can use this plugin along with `@mdx-js/react` and its related deps
-  so as to use `.mdx` files as supported routed pages.
 
 ### Typescript
 ```js
