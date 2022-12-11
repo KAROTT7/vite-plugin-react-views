@@ -54,6 +54,12 @@ function Routes() {
 
   A route will be imported synchronously if return true.
 
+- extensions: string[]
+
+  default: `['js', 'jsx', 'ts', 'tsx']`
+
+  Filename extensions which will be scanned and imported as route elements.
+
 ### Typescript
 ```js
 // src/vite-env.d.ts
