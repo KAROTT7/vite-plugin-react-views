@@ -68,7 +68,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           if (segment === '404') {
             return 'NoMatch'
           } else if (segment) {
-            return segment.charAt(0).toUpperCase() + segment.slice(1)
+            return segment.charAt(0).toUpperCase() + segment.slice(1).replace(/[^a-zA-Z]+/g, '')
           }
 
           return segment
