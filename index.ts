@@ -18,6 +18,10 @@ function readContent(id: string) {
   return fs.readFileSync(id).toString().trim()
 }
 
+function join(...rest: string[]) {
+  return slash(path.join(...rest))
+}
+
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
@@ -34,7 +38,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const nonEmptyFiles = new Set()
 
   function createRoutes(folder: string) {
-    const originFolder = path.join(_config.root!, dir)
+    const originFolder = join(_config.root!, dir)
     const originFolderStat = fs.statSync(originFolder)
 
     if (!originFolderStat.isDirectory()) {
@@ -87,7 +91,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
         const files = fs.readdirSync(id)
 
         files.forEach(file => {
-          const nextFile = path.join(id, file)
+          const nextFile = join(id, file)
           if (exclude?.(nextFile)) return
 
           const stat = fs.statSync(nextFile)
