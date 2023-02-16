@@ -27,13 +27,17 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     dir = 'src/pages',
     exclude,
     sync,
-    extensions = ['js', 'jsx', 'ts', 'tsx'] // mdx
+    extensions = ['js', 'jsx', 'ts', 'tsx']
   } = opts
 
   let _config: ResolvedConfig
   const ROUTE_RE = new RegExp(`\\.(${extensions.join('|')})$`)
   const MODULE_NAME = 'route-views'
-  const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${extensions[1]}`
+  /**
+   * Do not add '\0' prefix, the jsx file need to
+   * be transformed by @vitejs/plugin-react@^3
+   */
+  const VIRTUAL_MODULE = MODULE_NAME + `.${extensions[1]}`
   const emptyFiles = new Set()
   const nonEmptyFiles = new Set()
 
@@ -202,7 +206,8 @@ function Lazilize(importFn) {
   )
 }
 
-export default ${JSON.stringify(routes).replace(/"(Lazilize[^,}]+)/g, (_, $1) => $1.slice(0, -1)).replace(/"(<[A-Z]{1}[^\s]+ \/>)"/g, '$1')}`
+export default ${JSON.stringify(routes, null, 2)
+	.replace(/"(<[A-Z]{1}[^\s]+ \/>)"|"(Lazilize.+\)\))",?/g, (_, $1, $2) => $1 || $2 + ',')}`
       }
     },
   }
