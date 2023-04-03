@@ -35,7 +35,7 @@ function removeExt(file: string) {
 }
 
 function toDynamic(segment: string) {
-  return /^_{1}/.test(segment) ? `:${segment.slice(1)}` : segment
+  return segment.replace(/^(?:_(.+)|\[(.+)\])$/, (_, $1, $2) => `:${$1 || $2}`)
 }
 
 function VitePluginReactRouter(opts: Options = {}): PluginOption {

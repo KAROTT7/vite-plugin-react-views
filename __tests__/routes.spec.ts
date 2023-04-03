@@ -15,7 +15,6 @@ test('Test synchronous route', async () => {
 test('Nested layout should not be imported synchronously', async () => {
   await page.click('.excluded-components')
   expect(await page.textContent('.no-match-content')).toBe('404')
-  
   await page.goBack()
 })
 
@@ -27,6 +26,12 @@ test('/contact', async () => {
   await page.click('.contact')
   expect(await page.textContent('.layout')).toBe('layout')
   expect(await page.textContent('.content')).toBe('contact')
+})
+
+test('/bar/:dynamic (test dynamic route format `[name]`)', async () => {
+  await page.click('.bar-dynamic')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.dynamic')).toBe('dynamic')
 })
 
 test('/foo', async () => {
