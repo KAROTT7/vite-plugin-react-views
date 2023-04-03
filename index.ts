@@ -22,6 +22,22 @@ function join(...rest: string[]) {
   return slash(path.join(...rest))
 }
 
+function getComponentName(segment: string) {
+  if (segment === '404') {
+    return 'NoMatch'
+  }
+
+  return segment.replace(/[^a-zA-Z0-9_]/g, '')
+}
+
+function removeExt(file: string) {
+  return file.slice(0, file.length - path.extname(file).length)
+}
+
+function toDynamic(segment: string) {
+  return /^_{1}/.test(segment) ? `:${segment.slice(1)}` : segment
+}
+
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
@@ -31,6 +47,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   } = opts
 
   let _config: ResolvedConfig
+  let originDirPath: string
   const ROUTE_RE = new RegExp(`\\.(${extensions.join('|')})$`)
   const MODULE_NAME = 'route-views'
   /**
@@ -41,107 +58,103 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const emptyFiles = new Set()
   const nonEmptyFiles = new Set()
 
-  function createRoutes(folder: string) {
-    const originFolder = join(_config.root!, dir)
-    const originFolderStat = fs.statSync(originFolder)
+  function createRoutes() {
+    originDirPath = join(_config.root, dir)
+    let stackDirs = [originDirPath]
+    let stackFiles: string[][] = []
+    let stackIndexs: number[] = []
 
-    if (!originFolderStat.isDirectory()) {
-      throw new Error(`${folder} must be a folder.`)
-    }
+    let currentFiles = fs.readdirSync(originDirPath)
+    let currentIndex = 0
 
-    const syncRoutesMap = new Map()
+    let workFile = currentFiles[currentIndex++]
+    let workRoute: RouteObject = { path: '/', children: [] }
+    let stackRoutes: RouteObject[] = [workRoute]
+
+    let noMatchPath = ''
     let loadingId = ''
-    const routes: RouteObject[] = [
-      {
-        path: '/',
-        children: []
-      }
-    ]
+    let syncRoutesMap = {}
 
-    function normalizedFileName(id: string) {
-      const index = id.lastIndexOf('.')
-      return index > -1 ? id.slice(0, index) : id
-    }
+    const getElement = (id: string) => {
+      const routePath = removeExt(id.slice(originDirPath.length))
+      if (sync?.(routePath)) {
+        let componentName = routePath.split('/').map(s => getComponentName(s)).join('')
+        syncRoutesMap[id] = /^[a-zA-Z]/.test(componentName) ? componentName.charAt(0).toUpperCase() + componentName.slice(1) : `Component${componentName}`
 
-    function getRouteElement(id: string, syncRoute = false) {
-      if (syncRoute) {
-        const name = id.slice(
-          originFolder.length,
-          id.indexOf(path.extname(id))
-        ).split('/').map(segment => {
-          if (segment === '404') {
-            return 'NoMatch'
-          } else if (segment) {
-            return segment.charAt(0).toUpperCase() + segment.slice(1).replace(/[^a-zA-Z]+/g, '')
-          }
-
-          return segment
-        }).join('')
-
-        syncRoutesMap.set(id, name)
-
-        return '<' + name + ' />'
+        return `<${syncRoutesMap[id]} />`
       }
 
       return `Lazilize(() => import('${id}'))`
     }
 
-    function readFiles(id: string, route: RouteObject, isDirectory = false, root = false) {
-      if (exclude?.(id)) return
+    while (workFile != null) {
+      const filePath = join(...stackDirs, workFile)
+      const routePath = filePath.slice(originDirPath.length)
+      const stat = fs.statSync(filePath)
 
-      const basename = id.endsWith(dir) ? '/' : path.basename(id)
+      if (stat.isDirectory() && !exclude?.(routePath)) {
+        const nextFiles = fs.readdirSync(filePath)
 
-      if (isDirectory) {
-        const files = fs.readdirSync(id)
+        if (nextFiles.length) {
+          stackDirs.push(workFile)
+          stackFiles.push(currentFiles)
+          stackIndexs.push(currentIndex)
 
-        files.forEach(file => {
-          const nextFile = join(id, file)
-          if (exclude?.(nextFile)) return
+          let len = workRoute.children!.push({ path: workFile, children: [] })
+          stackRoutes.push(workRoute)
 
-          const stat = fs.statSync(nextFile)
-          if (stat.isDirectory()) {
-            const newRoute = { path: path.basename(nextFile) } as RouteObject
-            ;(route.children || (route.children = [])).push(newRoute)
-            readFiles(nextFile, newRoute, true, false)
-          } else {
-            readFiles(nextFile, route, false, basename === '/')
-          }
-        })
-      } else if (ROUTE_RE.test(basename)) {
-        const content = readContent(id)
-        if (!content) {
-          emptyFiles.add(id)
-          return
+          workRoute = workRoute.children![len - 1]!
+          currentIndex = 0
+          currentFiles = nextFiles
         }
+      } else if (ROUTE_RE.test(workFile) && !exclude?.(removeExt(routePath))) {
+        const content = readContent(filePath)
+        if (content) {
+          nonEmptyFiles.add(filePath)
+          const segment = removeExt(workFile)
+          const isFirstDepth = stackFiles.length === 0
 
-        nonEmptyFiles.add(id)
-        const plainBaseName = normalizedFileName(basename)
-        const isSync = !!sync?.(id)
+          if (isFirstDepth && segment === '404') {
+            noMatchPath = filePath
+          } else if (isFirstDepth && segment === 'loading') {
+            syncRoutesMap[loadingId = filePath] = 'Loading'
+          } else if (segment === 'layout') {
+            workRoute.element = getElement(filePath)
+          } else {
+            let route = { element: getElement(filePath) } as RouteObject
+            if (segment === 'index') {
+              route.index = true
+            } else {
+              route.path = toDynamic(segment)
+            }
 
-        if (root && plainBaseName === '404') {
-          routes.push({ path: '*', element: getRouteElement(id, isSync) })
-        } else if (root && plainBaseName === 'loading') {
-          loadingId = id
-          getRouteElement(id, true)
-        } else if (plainBaseName === 'layout') {
-          route.element = getRouteElement(id, root ? true : isSync)
+            workRoute.children?.push(route)
+          }
         } else {
-          const newRoute = { element: getRouteElement(id, isSync) } as RouteObject
-          if (plainBaseName === 'index') {
-            newRoute.index = true
-          } else {
-            if (/^_[^_]+/.test(plainBaseName)) newRoute.path = `:${plainBaseName.slice(1)}`
-            else newRoute.path = plainBaseName
-          }
-
-          ;(route.children || (route.children = [])).push(newRoute)
+          emptyFiles.add(filePath)
         }
+      }
+
+      if (currentIndex >= currentFiles.length) {
+        currentFiles = stackFiles.pop()!
+        currentIndex = stackIndexs.pop()!
+        workRoute = stackRoutes.pop()!
+        stackDirs.pop()
+      }
+
+      if (currentFiles && currentFiles.length) {
+        workFile = currentFiles[currentIndex++]
+      } else {
+        workFile = undefined
       }
     }
 
-    readFiles(originFolder, routes[0]!, true, true)
+    stackRoutes.push(workRoute)
+    if (noMatchPath) {
+      stackRoutes.push({ path: '*', element: getElement(noMatchPath) })
+    }
 
-    return { routes, loadingId, syncRoutesMap }
+    return { routes: stackRoutes, loadingId, syncRoutesMap }
   }
 
   return {
@@ -151,23 +164,24 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     },
     configureServer(server) {
       function handleFileChange(path: string) {
-        if (slash(path).includes(dir) && !exclude?.(path)) {
+        path = slash(removeExt(path))
+
+        if (path.includes(dir) && !exclude?.(path.slice(originDirPath.length))) {
           const mod = server.moduleGraph.getModuleById(VIRTUAL_MODULE)
           if (mod) {
             server.moduleGraph.invalidateModule(mod)
           }
 
-          server.ws.send({
-            type: 'full-reload',
-            path: '*'
-          })
+          server.ws.send({ type: 'full-reload' })
         }
       }
 
       server.watcher.on('add', handleFileChange)
       server.watcher.on('unlink', handleFileChange)
       server.watcher.on('change', (path) => {
+        path = slash(path)
         const content = readContent(path)
+
         if (emptyFiles.has(path) && content) {
           emptyFiles.delete(path)
           nonEmptyFiles.add(path)
@@ -186,20 +200,16 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     },
     load(id) {
       if (id === VIRTUAL_MODULE) {
-        const { routes, loadingId, syncRoutesMap } = createRoutes(dir)
-        let syncRouteString = ''
-        syncRoutesMap.forEach((value, key) => {
-          syncRouteString += `import ${value} from '${key}'\n`
-        })
+        const { routes, loadingId, syncRoutesMap } = createRoutes()
 
         return `import { lazy, Suspense } from 'react'
-${syncRouteString}
+${Object.keys(syncRoutesMap).map(key => `import ${syncRoutesMap[key]} from '${key}'`).join('\n')}
 
 function Lazilize(importFn) {
   const Component = lazy(importFn)
   return (
     <Suspense
-      fallback={${syncRoutesMap.has(loadingId) ? '<Loading />' : 'null'}}
+      fallback={${syncRoutesMap[loadingId] ? '<Loading />' : 'null'}}
     >
       <Component />
     </Suspense>
