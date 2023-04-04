@@ -2,13 +2,11 @@
 A vite plugin based on File System for creating routes automatically.
 
 Some rules you need to know:
-- Requirement: `react-router-dom@^6`
+- Requirement: `react-router-dom@^6.9`
 - All files in conventional directory will become routes, except empty files and excluded files.
-- For code splitting, all routes will be imported dynamically by `React.lazy`, except layout/loading route in root directory.
-- A file starts with a `_` character will be `dynamic route`.
+- For code splitting, all routes will be imported dynamically by `[lazy](https://reactrouter.com/en/dev/route/lazy)`, except layout route in root directory.
+- A file starts with a `_` character or wraps by `[]` will be `dynamic route`.
 - Every file named `layout` in directory will become layout route.
-- A `404` file in root directory will become `404 route`.
-- A `loading` file in root directory will show before other routes finish import.
 
 ### Installation
 ```js
@@ -27,15 +25,19 @@ export default defineConfig({
 })
 
 // App.jsx
-import { useRoutes } from 'react-router-dom'
+import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 // Requirement: import routes
 import routes from 'route-views'
 
-function Routes() {
-  return useRoutes(routes)
-}
+const router = createBrowserRouter(routes)
 
-// Other codes
+export default function App() {
+  return (
+    <RouterProvider
+      router={router}
+    />
+  )
+}
 ```
 
 ### Options
