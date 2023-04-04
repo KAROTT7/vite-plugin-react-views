@@ -25,9 +25,11 @@
   ],
   "author": "KAROTT7",
   "license": "MIT",
+  "dependencies": {
+    "es-module-lexer": "^1.2.1"
+  },
   "devDependencies": {
     "@types/react": "^18.0.28",
-    "es-module-lexer": "^1.2.1",
     "playwright-chromium": "^1.27.1",
     "react-router-dom": "^6.10.0",
     "typescript": "^4.7.4",

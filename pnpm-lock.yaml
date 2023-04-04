@@ -9,9 +9,11 @@ specifiers:
   vite: ^4.2.1
   vitest: ^0.29.8
 
+dependencies:
+  es-module-lexer: 1.2.1
+
 devDependencies:
   '@types/react': 18.0.28
-  es-module-lexer: 1.2.1
   playwright-chromium: 1.27.1
   react-router-dom: 6.10.0
   typescript: 4.8.4
@@ -387,7 +389,7 @@ packages:
 
   /es-module-lexer/1.2.1:
     resolution: {integrity: sha512-9978wrXM50Y4rTMmW5kXIC09ZdXQZqkE4mxhwkd8VbzsGkXGPgV4zWuqQJgCEzYngdo2dYDa0l8xhX4fkSwJSg==}
-    dev: true
+    dev: false
 
   /esbuild/0.17.15:
     resolution: {integrity: sha512-LBUV2VsUIc/iD9ME75qhT4aJj0r75abCVS0jakhFzOtR7TQsqQA5w0tZ+KTKnwl3kXE0MhskNdHDh/I5aCR1Zw==}

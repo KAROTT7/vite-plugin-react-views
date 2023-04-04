@@ -10,7 +10,7 @@ export default defineConfig({
       fileName: 'index'
     },
     rollupOptions: {
-      external: ['node:path', 'node:fs', 'es-module-lexer', 'vite']
+      external: ['node:path', 'node:fs', 'vite']
     }
   },
 })
