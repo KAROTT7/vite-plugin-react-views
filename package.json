@@ -27,10 +27,11 @@
   "license": "MIT",
   "devDependencies": {
     "@types/react": "^18.0.28",
+    "es-module-lexer": "^1.2.1",
     "playwright-chromium": "^1.27.1",
-    "react-router-dom": "^6.4.2",
+    "react-router-dom": "^6.10.0",
     "typescript": "^4.7.4",
     "vite": "^4.2.1",
-    "vitest": "^0.24.3"
+    "vitest": "^0.29.8"
   }
 }

@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { PluginOption, ResolvedConfig } from 'vite'
+import { init, parse } from 'es-module-lexer'
+import { transformWithEsbuild, normalizePath } from 'vite'
+import type { PluginOption, ResolvedConfig, EsbuildTransformOptions } from 'vite'
 import type { RouteObject } from 'react-router-dom'
 
 interface Options {
@@ -10,24 +12,23 @@ interface Options {
   extensions?: string[];
 }
 
-function slash(id: string) {
-  return id.replace(/\\/g, '/')
-}
-
 function readContent(id: string) {
   return fs.readFileSync(id).toString().trim()
 }
 
 function join(...rest: string[]) {
-  return slash(path.join(...rest))
+  return normalizePath(path.join(...rest))
 }
 
-function getComponentName(segment: string) {
-  if (segment === '404') {
-    return 'NoMatch'
-  }
-
-  return segment.replace(/[^a-zA-Z0-9_]/g, '')
+function getComponentPrefix(path: string) {
+  return path
+    .slice(0)
+    .split('/')
+    .map(segment => segment
+                      .replace(/^([a-z])/, (_, $1) => $1.toUpperCase())
+                      .replace(/[^a-zA-Z0-9_$]/g, '_')
+    )
+    .join('')
 }
 
 function removeExt(file: string) {
@@ -37,6 +38,9 @@ function removeExt(file: string) {
 function toDynamic(segment: string) {
   return segment.replace(/^(?:_(.+)|\[(.+)\])$/, (_, $1, $2) => `:${$1 || $2}`)
 }
+
+const routeArgs = ['Component', 'ErrorBoundary', 'loader', 'action', 'handle', 'shouldRevalidate']
+const re = new RegExp(`"(\\(\\) => import\\(.+\\))"|: "(.+(?:${routeArgs.join('|')}))"`, 'g')
 
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
@@ -50,15 +54,11 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   let originDirPath: string
   const ROUTE_RE = new RegExp(`\\.(${extensions.join('|')})$`)
   const MODULE_NAME = 'route-views'
-  /**
-   * Do not add '\0' prefix, the jsx file need to
-   * be transformed by @vitejs/plugin-react@^3
-   */
-  const VIRTUAL_MODULE = MODULE_NAME + `.${extensions[1]}`
+  const VIRTUAL_MODULE = '\0' + MODULE_NAME + `.${extensions[1]}`
   const emptyFiles = new Set()
   const nonEmptyFiles = new Set()
 
-  function createRoutes() {
+  async function createRoutes() {
     originDirPath = join(_config.root, dir)
     let stackDirs = [originDirPath]
     let stackFiles: string[][] = []
@@ -71,20 +71,39 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     let workRoute: RouteObject = { path: '/', children: [] }
     let stackRoutes: RouteObject[] = [workRoute]
 
-    let noMatchPath = ''
-    let loadingId = ''
     let syncRoutesMap = {}
 
-    const getElement = (id: string) => {
-      const routePath = removeExt(id.slice(originDirPath.length))
-      if (sync?.(routePath)) {
-        let componentName = routePath.split('/').map(s => getComponentName(s)).join('')
-        syncRoutesMap[id] = /^[a-zA-Z]/.test(componentName) ? componentName.charAt(0).toUpperCase() + componentName.slice(1) : `Component${componentName}`
+    async function parseRoute(code: string, id: string, routePath: string) {
+      const result = await transformWithEsbuild(code, id, {
+        loader: path.extname(id).slice(1) as EsbuildTransformOptions['loader']
+      })
 
-        return `<${syncRoutesMap[id]} />`
+      let prefix = getComponentPrefix(removeExt(routePath))
+      const route = {}
+
+      try {
+        await init
+        const [, exports] = parse(result.code)
+        for (const e of exports) {
+          const key = e.n
+          if (routeArgs.includes(key)) {
+            route[key] = prefix + '_' + key
+          }
+        }
+      } catch (error) {
+        console.error(`[parse error]: `, error)
       }
 
-      return `Lazilize(() => import('${id}'))`
+      syncRoutesMap[id] = { ...route }
+      return route
+    }
+
+    const getElement = async (id: string, code?: string, routePath?: string, sync?: boolean) => {
+      if (sync) {
+        return await parseRoute(code!, id, routePath!)
+      }
+
+      return { lazy: `() => import('${id}')` as any }
     }
 
     while (workFile != null) {
@@ -112,16 +131,13 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
         if (content) {
           nonEmptyFiles.add(filePath)
           const segment = removeExt(workFile)
-          const isFirstDepth = stackFiles.length === 0
+          const isRoot = stackFiles.length === 0
 
-          if (isFirstDepth && segment === '404') {
-            noMatchPath = filePath
-          } else if (isFirstDepth && segment === 'loading') {
-            syncRoutesMap[loadingId = filePath] = 'Loading'
-          } else if (segment === 'layout') {
-            workRoute.element = getElement(filePath)
+          if (segment === 'layout') {
+            Object.assign(workRoute, await getElement(filePath, content, routePath, isRoot))
           } else {
-            let route = { element: getElement(filePath) } as RouteObject
+            const route = await getElement(filePath, content, routePath, sync?.(routePath)) as RouteObject
+
             if (segment === 'index') {
               route.index = true
             } else {
@@ -149,22 +165,18 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       }
     }
 
-    stackRoutes.push(workRoute)
-    if (noMatchPath) {
-      stackRoutes.push({ path: '*', element: getElement(noMatchPath) })
-    }
-
-    return { routes: stackRoutes, loadingId, syncRoutesMap }
+    return { routes: stackRoutes.concat(workRoute), syncRoutesMap }
   }
 
   return {
     name: 'vite-plugin-react-views',
+    enforce: 'post',
     configResolved(c) {
       _config = c
     },
     configureServer(server) {
       function handleFileChange(path: string) {
-        path = slash(removeExt(path))
+        path = normalizePath(removeExt(path))
 
         if (path.includes(dir) && !exclude?.(path.slice(originDirPath.length))) {
           const mod = server.moduleGraph.getModuleById(VIRTUAL_MODULE)
@@ -179,7 +191,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       server.watcher.on('add', handleFileChange)
       server.watcher.on('unlink', handleFileChange)
       server.watcher.on('change', (path) => {
-        path = slash(path)
+        path = normalizePath(path)
         const content = readContent(path)
 
         if (emptyFiles.has(path) && content) {
@@ -198,26 +210,17 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
         return VIRTUAL_MODULE
       }
     },
-    load(id) {
+    async load(id) {
       if (id === VIRTUAL_MODULE) {
-        const { routes, loadingId, syncRoutesMap } = createRoutes()
+        const { routes, syncRoutesMap } = await createRoutes()
 
-        return `import { lazy, Suspense } from 'react'
-${Object.keys(syncRoutesMap).map(key => `import ${syncRoutesMap[key]} from '${key}'`).join('\n')}
-
-function Lazilize(importFn) {
-  const Component = lazy(importFn)
-  return (
-    <Suspense
-      fallback={${syncRoutesMap[loadingId] ? '<Loading />' : 'null'}}
-    >
-      <Component />
-    </Suspense>
-  )
-}
+        return `${Object.keys(syncRoutesMap).map(id => {
+            const route = syncRoutesMap[id]
+            return `import { ${Object.keys(route).map(routeKey => `${routeKey} as ${route[routeKey]}`).join(', ')} } from '${id}'`
+          }).join('\n')}
 
 export default ${JSON.stringify(routes, null, 2)
-	.replace(/"(<[A-Z]{1}[^\s]+ \/>)"|"(Lazilize.+\)\))",?/g, (_, $1, $2) => $1 || $2 + ',')}`
+	.replace(re, (_, $1, $2) => $2 ? `: ${$2}` : $1)}`
       }
     },
   }
