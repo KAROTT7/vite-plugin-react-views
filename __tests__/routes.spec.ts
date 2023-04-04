@@ -8,18 +8,22 @@ test('/', async () => {
   expect(await page.textContent('.content')).toBe('index')
 })
 
+test('Test root layout\'s loader', async () => {
+  expect(await page.textContent('.layout-loader-data')).toBe('root')
+})
+
 test('Test synchronous route', async () => {
   expect((await page.content()).includes('id="sync"')).toBeTruthy()
 })
 
 test('Nested layout should not be imported synchronously', async () => {
-  await page.click('.excluded-components')
-  expect(await page.textContent('.no-match-content')).toBe('404')
-  await page.goBack()
+  expect((await page.content()).includes('id="foo_layout"')).toBeFalsy()
 })
 
 test('Should not create Route for excluded directory', async () => {
-  expect((await page.content()).includes('id="foo_layout"')).toBeFalsy()
+  await page.click('.excluded-components')
+  expect(await page.textContent('.route-error')).toContain('404 Not Found')
+  await page.goBack()
 })
 
 test('/contact', async () => {
@@ -55,6 +59,12 @@ test('/foo/:type', async () => {
   expect(await page.textContent('.foo-content')).toBe('a')
 })
 
+test('hyphen-name', async () => {
+  await page.click('.hyphen-name')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.content')).toBe('hyphen-name')
+})
+
 test('index', async () => {
   await page.click('.index')
   expect(await page.textContent('.layout')).toBe('layout')
@@ -63,10 +73,9 @@ test('index', async () => {
 
 test('/utils (exclude)', async () => {
   await page.click('.utils')
-  expect(await page.textContent('.no-match-content')).toBe('404')
+  expect(await page.textContent('.route-error')).toContain('404 Not Found')
 
   await page.goBack()
-  expect(page.isHidden('.no-match-content')).toBeTruthy()
   expect(await page.textContent('.layout')).toBe('layout')
   expect(await page.textContent('.content')).toBe('index')
 })
@@ -74,17 +83,15 @@ test('/utils (exclude)', async () => {
 if (!process.env.VITEST_BUILD) {
   test('HMR', async () => {
     await page.click('.about')
-    expect(await page.textContent('.no-match-content')).toBe('404')
+    expect(await page.textContent('.route-error')).toContain('404 Not Found')
 
     await page.goBack()
+    await page.click('.about')
+    expect(await page.textContent('.route-error')).toContain('404 Not Found')
 
     const aboutFile = path.join(process.cwd(), 'example/src/pages/about.jsx')
-
     fs.writeFileSync(aboutFile, '')
-    await page.click('.about')
-    expect(await page.textContent('.no-match-content')).toBe('404')
-
-    fs.writeFileSync(aboutFile, `export default function About() {
+    fs.writeFileSync(aboutFile, `export function Component() {
   return <div className="content">about</div>
 }`)
 
@@ -92,7 +99,6 @@ if (!process.env.VITEST_BUILD) {
     expect(await page.textContent('.content')).toBe('about')
 
     fs.rmSync(aboutFile)
-    expect(await page.textContent('.no-match-content')).toBe('404')
   })
 }
 

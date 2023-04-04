@@ -1,7 +1,7 @@
 export function Component() {
-  return 'button'
+  return 'utils'
 }
 
 if (import.meta.env.DEV) {
-  Component.displayName = 'Button'
+  Component.displayName = 'Utils'
 }
