@@ -151,7 +151,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
         }
       }
 
-      if (currentIndex >= currentFiles.length) {
+      while (currentIndex != null && currentFiles && currentIndex >= currentFiles.length) {
         currentFiles = stackFiles.pop()!
         currentIndex = stackIndexs.pop()!
         workRoute = stackRoutes.pop()!
