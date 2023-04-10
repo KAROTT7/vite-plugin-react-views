@@ -39,8 +39,9 @@ function toDynamic(segment: string) {
   return segment.replace(/^(?:_(.+)|\[(.+)\])$/, (_, $1, $2) => `:${$1 || $2}`)
 }
 
+const splitMark = '__'
 const routeArgs = ['Component', 'ErrorBoundary', 'loader', 'action', 'handle', 'shouldRevalidate']
-const re = new RegExp(`"(\\(\\) => import\\(.+\\))"|: "(.+(?:${routeArgs.join('|')}))"`, 'g')
+const re = new RegExp(`"(\\(\\) => import\\(.+\\))"|: "(.+${splitMark}(?:${routeArgs.join('|')}))"`, 'g')
 
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
@@ -87,7 +88,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
         for (const e of exports) {
           const key = e.n
           if (routeArgs.includes(key)) {
-            route[key] = prefix + '_' + key
+            route[key] = prefix + splitMark + key
           }
         }
       } catch (error) {
