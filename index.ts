@@ -68,11 +68,11 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     let currentFiles = fs.readdirSync(originDirPath)
     let currentIndex = 0
 
-    let workFile = currentFiles[currentIndex++]
+    let workFile: string | undefined = currentFiles[currentIndex++]
     let workRoute: RouteObject = { path: '/', children: [] }
     let stackRoutes: RouteObject[] = [workRoute]
 
-    let syncRoutesMap = {}
+    let syncRoutesMap: Record<string, Record<string, string>> = {}
 
     async function parseRoute(code: string, id: string, routePath: string) {
       const result = await transformWithEsbuild(code, id, {
@@ -80,13 +80,13 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
       })
 
       let prefix = getComponentPrefix(removeExt(routePath))
-      const route = {}
+      const route: Record<string, string> = {}
 
       try {
         await init
         const [, exports] = parse(result.code)
         for (const e of exports) {
-          const key = e.n
+          const key = e.n as keyof RouteObject
           if (routeArgs.includes(key)) {
             route[key] = prefix + splitMark + key
           }
@@ -120,7 +120,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           stackFiles.push(currentFiles)
           stackIndexs.push(currentIndex)
 
-          let len = workRoute.children!.push({ path: workFile, children: [] })
+          const len: number = workRoute.children!.push({ path: workFile, children: [] })
           stackRoutes.push(workRoute)
 
           workRoute = workRoute.children![len - 1]!

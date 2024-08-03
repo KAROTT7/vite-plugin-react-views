@@ -3,11 +3,11 @@
   "version": "2.0.3",
   "description": "A vite plugin based on File System for creating routes automatically.",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "type": "module",
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "vite build --watch",
-    "build": "rm -rf dist && vite build && tsc index.ts --esModuleInterop --declaration --emitDeclarationOnly --declarationDir dist",
+    "build": "vite build && tsc",
     "test": "pnpm test-serve && pnpm test-build",
     "test-serve": "vitest run",
     "test-build": "VITEST_BUILD=1 vitest run"
@@ -20,11 +20,11 @@
     "router",
     "react-router"
   ],
-	"exports": {
-		"import": "./dist/index.mjs",
-		"require": "./dist/index.js",
-		"types": "./dist/index.d.ts"
-	},
+  "exports": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs",
+    "types": "./dist/index.d.ts"
+  },
   "files": [
     "dist"
   ],
@@ -34,11 +34,15 @@
     "es-module-lexer": "^1.2.1"
   },
   "devDependencies": {
+    "@types/node": "^22.1.0",
     "@types/react": "^18.0.28",
     "playwright-chromium": "^1.27.1",
-    "react-router-dom": "^6.10.0",
-    "typescript": "^4.7.4",
-    "vite": "^4.2.1",
-    "vitest": "^0.29.8"
+    "react-router-dom": "^6.26.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.3.5",
+    "vitest": "^2.0.5"
+  },
+  "peerDependencies": {
+    "react-router-dom": "^6.26.0"
   }
 }
