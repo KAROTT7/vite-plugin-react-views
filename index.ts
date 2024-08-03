@@ -40,7 +40,7 @@ function toDynamic(segment: string) {
 }
 
 const splitMark = '__'
-const routeArgs = ['Component', 'ErrorBoundary', 'loader', 'action', 'handle', 'shouldRevalidate']
+const routeArgs = ['Component', 'ErrorBoundary', 'loader', 'action', 'handle', 'shouldRevalidate', 'errorElement', 'id']
 const re = new RegExp(`"(\\(\\) => import\\(.+\\))"|: "(.+${splitMark}(?:${routeArgs.join('|')}))"`, 'g')
 
 function VitePluginReactRouter(opts: Options = {}): PluginOption {

@@ -1,4 +1,6 @@
-import { Outlet, Link, useLoaderData } from 'react-router-dom'
+import { Outlet, Link, useRouteLoaderData } from 'react-router-dom'
+
+export const id = '/'
 
 export function loader() {
   return {
@@ -21,7 +23,7 @@ export function shouldRevalidate() {
 }
 
 export function Component() {
-  const data = useLoaderData() as { root: string }
+  const data = useRouteLoaderData('/') as { root: string }
 
   return (
     <>
