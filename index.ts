@@ -139,13 +139,18 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           } else {
             const route = await getElement(filePath, content, routePath, sync?.(routePath)) as RouteObject
 
-            if (segment === 'index') {
-              route.index = true
+            if (isRoot && segment === '404') {
+              route.path = '*'
+              stackRoutes.push(route)
             } else {
-              route.path = toDynamic(segment)
-            }
+              if (segment === 'index') {
+                route.index = true
+              } else {
+                route.path = toDynamic(segment)
+              }
 
-            workRoute.children?.push(route)
+              workRoute.children?.push(route)
+            }
           }
         } else {
           emptyFiles.add(filePath)

@@ -22,7 +22,7 @@ test('Nested layout should not be imported synchronously', async () => {
 
 test('Should not create Route for excluded directory', async () => {
   await page.click('.excluded-components')
-  expect(await page.textContent('.route-error')).toContain('404 Not Found')
+  expect(await page.textContent('.content')).toContain('404 Not Found')
   await page.goBack()
 })
 
@@ -73,21 +73,24 @@ test('index', async () => {
 
 test('/utils (exclude)', async () => {
   await page.click('.utils')
-  expect(await page.textContent('.route-error')).toContain('404 Not Found')
+  expect(await page.textContent('.content')).toContain('404 Not Found')
 
   await page.goBack()
   expect(await page.textContent('.layout')).toBe('layout')
   expect(await page.textContent('.content')).toBe('index')
 })
 
+test('/error', async () => {
+  await page.click('.error')
+  expect(await page.textContent('.route-error')).toContain('Route Error')
+
+  await page.goBack()
+})
+
 if (!process.env.VITEST_BUILD) {
   test('HMR', async () => {
     await page.click('.about')
-    expect(await page.textContent('.route-error')).toContain('404 Not Found')
-
-    await page.goBack()
-    await page.click('.about')
-    expect(await page.textContent('.route-error')).toContain('404 Not Found')
+    expect(await page.textContent('.content')).toContain('404 Not Found')
 
     const aboutFile = path.join(process.cwd(), 'example/src/pages/about.jsx')
     fs.writeFileSync(aboutFile, '')

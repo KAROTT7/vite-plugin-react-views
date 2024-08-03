@@ -14,7 +14,7 @@ export function action() {}
 
 export function ErrorBoundary() {
   return (
-    <div className="route-error">404 Not Found</div>
+    <div className="route-error">Route Error</div>
   )
 }
 
@@ -38,6 +38,7 @@ export function Component() {
         <Link className="bar-dynamic" to="/bar/dynamic">/bar/:dynamic</Link>{' '}
         <Link className="hyphen-name" to="/hyphen-name">/hyphen-name</Link>{' '}
         <Link className="excluded-components" to="/components">/excluded/components</Link>
+        <Link className="error" to="/error">/error</Link>
       </div>
       <div className="layout">layout</div>
       <div className="layout-loader-data">{data.root}</div>

@@ -8,6 +8,7 @@ Some rules you need to know:
 - you can export `'Component'、'ErrorBoundary'、'loader'、'action', 'handle'、'shouldRevalidate'、'errorElement'、'id'` in every route file
 - A file starts with a `_` character or wraps by `[]` will be `dynamic route`.
 - Every file named `layout` in directory will become layout route.
+- The file named `404` in root directory will become `No Match(404) Route`.
 
 ### Installation
 ```js
