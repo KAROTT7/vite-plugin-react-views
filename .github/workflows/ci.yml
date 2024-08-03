@@ -40,9 +40,9 @@ jobs:
           version: 6.0.2
 
       - name: Set node version to ${{ matrix.node_version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 20
 
       - name: Install dependencies
         run: |
