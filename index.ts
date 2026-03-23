@@ -1,8 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { init, parse } from 'es-module-lexer'
-import { transformWithEsbuild, normalizePath } from 'vite'
-import type { PluginOption, ResolvedConfig, EsbuildTransformOptions } from 'vite'
+import type {
+  PluginOption,
+  ResolvedConfig,
+  EsbuildTransformOptions,
+} from 'vite'
 import type { RouteObject } from 'react-router-dom'
 
 interface Options {
@@ -14,6 +17,10 @@ interface Options {
 
 function readContent(id: string) {
   return fs.readFileSync(id).toString().trim()
+}
+
+function normalizePath(id: string) {
+  return path.posix.normalize(id.replace(/\\/g, '/'))
 }
 
 function join(...rest: string[]) {
@@ -43,6 +50,49 @@ const splitMark = '__'
 const routeArgs = ['Component', 'ErrorBoundary', 'loader', 'action', 'handle', 'shouldRevalidate', 'errorElement', 'id']
 const re = new RegExp(`"(\\(\\) => import\\(.+\\))"|: "(.+${splitMark}(?:${routeArgs.join('|')}))"`, 'g')
 
+type HostViteModule = typeof import('vite') & {
+  default?: typeof import('vite')
+}
+
+function findHostVitePkgPath(root: string) {
+  let current = root
+
+  while (true) {
+    const vitePkgPath = path.join(current, 'node_modules', 'vite', 'package.json')
+
+    if (fs.existsSync(vitePkgPath)) {
+      return vitePkgPath
+    }
+
+    const parent = path.dirname(current)
+    if (parent === current) {
+      throw new Error(`Cannot find Vite from project root: ${root}`)
+    }
+
+    current = parent
+  }
+}
+
+async function resolveHostVite(root: string): Promise<typeof import('vite')> {
+  const vitePkgPath = findHostVitePkgPath(root)
+  const vitePkg = JSON.parse(fs.readFileSync(vitePkgPath, 'utf-8'))
+  const exportRoot = vitePkg.exports?.['.']
+  const viteEntry = typeof exportRoot === 'string'
+    ? exportRoot
+    : exportRoot?.import?.default ?? exportRoot?.import ?? vitePkg.main
+
+  if (!viteEntry) {
+    throw new Error(`Cannot resolve Vite entry from: ${vitePkgPath}`)
+  }
+
+  const viteModule = await import(normalizePath(path.resolve(
+    path.dirname(vitePkgPath),
+    viteEntry
+  ))) as HostViteModule
+
+  return viteModule.default ?? viteModule
+}
+
 function VitePluginReactRouter(opts: Options = {}): PluginOption {
   const {
     dir = 'src/pages',
@@ -52,6 +102,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   } = opts
 
   let _config: ResolvedConfig
+  let hostVite: typeof import('vite')
   let originDirPath: string
   const ROUTE_RE = new RegExp(`\\.(${extensions.join('|')})$`)
   const MODULE_NAME = 'route-views'
@@ -75,9 +126,14 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
     let syncRoutesMap: Record<string, Record<string, string>> = {}
 
     async function parseRoute(code: string, id: string, routePath: string) {
-      const result = await transformWithEsbuild(code, id, {
-        loader: path.extname(id).slice(1) as EsbuildTransformOptions['loader']
-      })
+      const ext = path.extname(id).slice(1)
+      const result = hostVite.transformWithOxc
+        ? await hostVite.transformWithOxc(code, id, {
+            lang: ext as any
+          })
+        : await hostVite.transformWithEsbuild!(code, id, {
+            loader: ext as EsbuildTransformOptions['loader']
+          })
 
       let prefix = getComponentPrefix(removeExt(routePath))
       const route: Record<string, string> = {}
@@ -177,8 +233,9 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
   return {
     name: 'vite-plugin-react-views',
     enforce: 'post',
-    configResolved(c) {
+    async configResolved(c) {
       _config = c
+      hostVite = await resolveHostVite(_config.root)
     },
     configureServer(server) {
       function handleFileChange(path: string) {

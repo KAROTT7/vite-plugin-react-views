@@ -17,9 +17,9 @@
     "@types/node": "^22.1.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react-swc": "^3.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "typescript": "^5.5.4",
-    "vite": "^5.3.5",
-    "vite-plugin-react-views": "link:.."
+    "vite": "^8.0.1",
+    "vite-plugin-react-views": "link:../.."
   }
 }
