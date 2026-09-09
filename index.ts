@@ -176,7 +176,7 @@ function VitePluginReactRouter(opts: Options = {}): PluginOption {
           stackFiles.push(currentFiles)
           stackIndexs.push(currentIndex)
 
-          const len: number = workRoute.children!.push({ path: workFile, children: [] })
+          const len: number = workRoute.children!.push({ path: toDynamic(workFile), children: [] })
           stackRoutes.push(workRoute)
 
           workRoute = workRoute.children![len - 1]!

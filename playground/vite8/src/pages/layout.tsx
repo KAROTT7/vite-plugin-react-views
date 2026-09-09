@@ -36,6 +36,7 @@ export function Component() {
         <Link className="foo-bar" to="/foo/bar">/foo/bar</Link>{' '}
         <Link className="foo-type" to="/foo/a">/foo/:type</Link>{' '}
         <Link className="bar-dynamic" to="/bar/dynamic">/bar/:dynamic</Link>{' '}
+        <Link className="user-id" to="/user/1">/user/:id</Link>{' '}
         <Link className="hyphen-name" to="/hyphen-name">/hyphen-name</Link>{' '}
         <Link className="excluded-components" to="/components">/excluded/components</Link>
         <Link className="error" to="/error">/error</Link>

@@ -38,6 +38,12 @@ test('/bar/:dynamic (test dynamic route format `[name]`)', async () => {
   expect(await page.textContent('.dynamic')).toBe('dynamic')
 })
 
+test('/user/:id (test dynamic directory format `:name`)', async () => {
+  await page.click('.user-id')
+  expect(await page.textContent('.layout')).toBe('layout')
+  expect(await page.textContent('.dynamic-directory')).toBe('1')
+})
+
 test('/foo', async () => {
   await page.click('.foo')
   expect(await page.textContent('.layout')).toBe('layout')
@@ -92,7 +98,7 @@ if (!process.env.VITEST_BUILD) {
     await page.click('.about')
     expect(await page.textContent('.content')).toContain('404 Not Found')
 
-    const aboutFile = path.join(process.cwd(), 'example/src/pages/about.jsx')
+    const aboutFile = path.join(process.cwd(), 'playground/vite8/src/pages/about.jsx')
     fs.writeFileSync(aboutFile, '')
     fs.writeFileSync(aboutFile, `export function Component() {
   return <div className="content">about</div>
@@ -104,5 +110,4 @@ if (!process.env.VITEST_BUILD) {
     fs.rmSync(aboutFile)
   })
 }
-
 

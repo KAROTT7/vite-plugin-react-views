@@ -34,7 +34,7 @@ beforeAll(async () => {
 })
 
 async function startPrepare() {
-  const testDir = path.join(process.cwd(), 'example')
+  const testDir = path.join(process.cwd(), 'playground/vite8')
 
   const res = await loadConfigFromFile(
     {
