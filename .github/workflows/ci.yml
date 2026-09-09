@@ -37,7 +37,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 6.0.2
+          version: 10.18.1
 
       - name: Set node version to ${{ matrix.node_version }}
         uses: actions/setup-node@v4
@@ -46,14 +46,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm install
-          cd example
-          pnpm install
-          cd ..
+          pnpm install --frozen-lockfile
+          pnpm --dir playground/vite8 install --frozen-lockfile
 
       - name: Build
         run: pnpm build
 
       - name: Test
         run: pnpm test
-
